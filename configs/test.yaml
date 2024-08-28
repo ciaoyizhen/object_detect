@@ -1,0 +1,59 @@
+name: "cppe-5"  # task name, used to process title and save dir name
+label_config: "configs/label_config.txt"
+
+is_dataset_cached: false
+dataset_cache_dir: ""  # datasets module save cache path, if is_dataset_cache is false, it does not take effect
+
+model:
+  type: transformers,AutoModelForObjectDetection
+  args:
+    pretrained_model_name_or_path: "weights/microsoft-conditional-detr-resnet-50"  # used model
+
+processor:
+  type: transformers,AutoImageProcessor
+  args:
+    pretrained_model_name_or_path: "weights/microsoft-conditional-detr-resnet-50" # used model
+
+train_args:
+  #! Optional: transformers.TrainingArguments
+  output_dir: null # if not set, will using outputs/`name`
+  eval_strategy: "epoch"
+  per_device_train_batch_size: 4
+  per_device_eval_batch_size: 16
+  save_strategy: "epoch"
+  logging_steps: 10
+  learning_rate: !!float 5e-5
+  num_train_epochs: 30
+  logging_first_step: true
+  remove_unused_columns: false  #! importance! This is must be false. Because our data will be load when training. If we remove unused_columns, we will not any data
+  eval_do_concat_batches: false  #! importance for eval
+  lr_scheduler_type: "cosine"
+  weight_decay: !!float 1e-4
+  gradient_accumulation_steps: 1
+  max_grad_norm: 0.01
+
+train_dataset:  # train_dataset configure
+  type:  src.dataset,Dataset # used class name, format `{module_name},{class_name}`
+  args:  # class args
+    data_paths:
+      - configs/train_data.txt  # data_path  Currently only .txt format is implemented `{img_path}\t{label}`
+    input_format: "polygon"  # see src.utils.BoxFormat
+    output_format: "coco"  # each model has its own training format
+
+
+validation_dataset:
+  type: src.dataset,Dataset
+  args:
+    data_paths:
+      - configs/test_data.txt
+    input_format: "polygon"  # see src.utils.BoxFormat
+    output_format: "coco"  # each model has its own training format
+
+test_dataset:
+  type: src.dataset,Dataset
+  args:
+    data_paths:
+      - configs/test_data.txt
+    input_format: "polygon"  # see src.utils.BoxFormat
+    output_format: "coco"  # each model has its own training format
+

@@ -1,0 +1,1 @@
+data/train/train_imgs/0.jpg	data/train/train_annotations/0.txt

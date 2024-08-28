@@ -1,0 +1,12 @@
+torch
+transformers
+datasets==2.21.0
+gradio
+torchvision
+setproctitle
+timm
+pytest
+evaluate
+accelerate==0.32.1
+scipy
+torchmetrics[detection]

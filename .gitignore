@@ -1,0 +1,10 @@
+__pycache__
+.env
+.pytest_cache
+data
+test.py
+flagged
+outputs
+weights
+.ipynb_checkpoints
+detr_finetuned_cppe5
