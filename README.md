@@ -8,6 +8,11 @@ Requirement:
 python >= 3.10
 ```
 
+## update
+```
+2024.9.1: support data enhancement
+```
+
 ## Goal
 Use huggingface to implement a variety of tasks, and you can replace the model at any time without modifying the code.
 
@@ -40,11 +45,23 @@ ulimit -n xxx  # increase open file
 ```
 2. How to download a model to train
 ```
-1. open this (https://github.com/ciaoyizhen/image_classification)
+1. open this (https://huggingface.co/models)
 2. choose and download a model
 3. modify yaml
 ```
+3. Multi Gpu how to train
+```
+torchrun --nproc-per-node=x main.py configs/test.yaml
 
+see more in (https://pytorch.org/docs/stable/elastic/run.html)
+```
+4. About offline, like `models--timm--resnet50.a1_in1k`
+```
+1. you download model
+2. put this model to your ~/.cache/huggingface/hub/
+
+note: if you want deploy this model, maybe you need add this model in docker root/.cache
+```
 
 ## Support the Author
 
