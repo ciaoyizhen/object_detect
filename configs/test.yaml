@@ -9,11 +9,15 @@ model:
   args:
     pretrained_model_name_or_path: "weights/microsoft-conditional-detr-resnet-50"  # used model
 
+metric_box_format: "yolo"  #todo  some bug
+
 processor:
   type: transformers,AutoImageProcessor
   args:
     pretrained_model_name_or_path: "weights/microsoft-conditional-detr-resnet-50" # used model
-
+  size:  # image resize,  if not be set, will use model default. Maybe cause batch size not same error.
+    height: 480
+    width: 480
 train_args:
   #! Optional: transformers.TrainingArguments
   output_dir: null # if not set, will using outputs/`name`
@@ -39,7 +43,35 @@ train_dataset:  # train_dataset configure
       - configs/train_data.txt  # data_path  Currently only .txt format is implemented `{img_path}\t{label}`
     input_format: "polygon"  # see src.utils.BoxFormat
     output_format: "coco"  # each model has its own training format
-
+    min_area: 300  # Discard Area in Data Enhancement
+    albumentations:  # Data Enhancement, if you don't need this, your yaml not be write this key
+      # more data enhancement see https://pypi.org/project/albumentations/
+      - type: albumentations,RGBShift
+        args:
+          r_shift_limit: 
+            - -20
+            - 20
+          g_shift_limit:
+            - -20
+            - 20
+          b_shift_limit:
+            - -20
+            - 20
+          p: 0.5
+      - type: albumentations,HueSaturationValue
+        args: null
+      - type: albumentations,ChannelShuffle
+        args: null
+      - type: albumentations,CLAHE
+        args: null
+      - type: albumentations,RandomBrightnessContrast
+        args: null
+      - type: albumentations,RandomGamma
+        args: null
+      - type: albumentations,Blur
+        args: null
+      - type: albumentations,Rotate
+        args: null
 
 validation_dataset:
   type: src.dataset,Dataset

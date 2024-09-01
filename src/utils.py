@@ -15,6 +15,17 @@ class BoxFormat(Enum):
     POLYGON = "polygon"  # x_min, y_min, x_max, y_min, x_max, y_max, x_min, y_max
     #TODO if you want a truly polygon, please implement it yourself to get max box outlines
 
+    def ConvertAlbumentationsFormat(self):
+        map_ = {
+            BoxFormat.VOC: "pascal_voc",
+            BoxFormat.COCO: "coco",
+            BoxFormat.YOLO: "yolo"
+        }
+        
+        if self not in map_:
+            raise RuntimeError(f"current format:{self} not supported Albumentations")
+        return map_[self]
+    
 def convertAnnotationFormat(box, input_format, output_format):
     """convert annotation box format
 

@@ -16,13 +16,5 @@ class Model():
         }
         self.model = getClass(config["type"]).from_pretrained(**config["args"], **params)
         
-        # self.model = getClass(config["type"]).from_pretrained(**config["args"])
-        # try:
-        #     #! DetrForObjectDetection example, you should process your model yourself
-        #     self.model.config.num_labels = len(id2label) + 1
-        #     self.model.class_labels_classifier = nn.Linear(self.model.config.d_model, self.model.config.num_labels)
-        # except:
-        #     print("Your model is different from the example and needs to be manually adjusted to the source code")
-        # self.model.config.id2label = id2label
-        # self.model.config.label2id = label2id
+
         

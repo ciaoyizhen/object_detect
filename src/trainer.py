@@ -46,13 +46,15 @@ class ObjectTrainer():
     def _initProcessor(self):
         """create ImageProcessor
         """
-        MAX_SIZE = 480
-        params = {
-            "do_resize":True,
-            "size": {"max_height": MAX_SIZE, "max_width": MAX_SIZE},
-            "do_pad": True,
-            "pad_size": {"height": MAX_SIZE, "width": MAX_SIZE},
-        }
+        if "size" in self.config["processor"]:
+            params = {
+                "do_resize":True,
+                "size": {"max_height": self.config["processor"]["size"]["height"], "max_width": self.config["processor"]["size"]["width"]},
+                "do_pad": True,
+                "pad_size": {"height": self.config["processor"]["size"]["height"], "width": self.config["processor"]["size"]["width"]},
+            }
+        else:
+            params = {}
         self.processor = getClass(self.config["processor"]["type"]).from_pretrained(**self.config["processor"]["args"], **params)
         
     def _initDataset(self):
@@ -139,8 +141,9 @@ class ObjectTrainer():
                     boxes = image_target["boxes"]
                     box_list = []
                     for box in boxes:
-                        box = convertAnnotationFormat(box, self.config["train_dataset"]["args"]["output_format"], "voc")  # convert to voc, MeanAveragePrecision use xyxy
+                        box = convertAnnotationFormat(box, self.config["metric_box_format"], "voc")  # convert to voc, MeanAveragePrecision use xyxy
                         box_list.append(box)
+
                     boxes = torch.tensor(box_list)
                     height, width = image_target["orig_size"]
                     boxes = boxes * torch.tensor([[width, height, width, height]])
@@ -156,6 +159,9 @@ class ObjectTrainer():
                     output, threshold=threshold, target_sizes=target_sizes
                 )
                 post_processed_predictions.extend(post_processed_output)
+            print(f"post_processed_predictions:\n{post_processed_predictions}")
+            print(f"post_processed_targets:\n{post_processed_targets}")
+            
 
             # Compute metrics
             metric = MeanAveragePrecision(box_format="xyxy", class_metrics=True)

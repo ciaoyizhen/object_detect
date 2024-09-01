@@ -10,9 +10,12 @@ from PIL import Image, ImageDraw
 import torch
 from transformers import AutoImageProcessor, AutoModelForObjectDetection
 from enum import Enum
+
+device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
+
 # load_model
-model = AutoModelForObjectDetection.from_pretrained("outputs/cppe-5/checkpoint-4598")
-processor = AutoImageProcessor.from_pretrained("outputs/cppe-5/checkpoint-4598")
+model = AutoModelForObjectDetection.from_pretrained("outputs/cppe-5/checkpoint-2904").to(device)
+processor = AutoImageProcessor.from_pretrained("outputs/cppe-5/checkpoint-2904")
 
 class BoxFormat(Enum):
     VOC= "voc"  # x_min, y_min, x_max, y_max
@@ -72,7 +75,7 @@ def convertAnnotationFormat(box, input_format, output_format):
 def detect_objects(image, threshold):
     
     inputs = processor(images=image, return_tensors="pt")
-    outputs = model(**inputs)
+    outputs = model(**inputs.to(device))
     
     target_sizes = torch.tensor([image.size[::-1]])
     results = processor.post_process_object_detection(outputs, threshold=threshold, target_sizes=target_sizes)[0]
