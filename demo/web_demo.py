@@ -14,8 +14,8 @@ from enum import Enum
 device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 
 # load_model
-model = AutoModelForObjectDetection.from_pretrained("outputs/cppe-5/checkpoint-2904").to(device)
-processor = AutoImageProcessor.from_pretrained("outputs/cppe-5/checkpoint-2904")
+model = AutoModelForObjectDetection.from_pretrained("outputs/cppe-5/checkpoint-1600").to(device)
+processor = AutoImageProcessor.from_pretrained("outputs/cppe-5/checkpoint-1600")
 
 class BoxFormat(Enum):
     VOC= "voc"  # x_min, y_min, x_max, y_max
@@ -69,17 +69,17 @@ def convertAnnotationFormat(box, input_format, output_format):
             return [cx, cy, width, height]
         case BoxFormat.POLYGON:
             return polygon
-            
+
 
 @torch.inference_mode()
-def detect_objects(image, threshold):
-    
+def modelInference(file_path, threshold):
+    image = Image.open(file_path)
+    image = image.convert("RGB")
     inputs = processor(images=image, return_tensors="pt")
     outputs = model(**inputs.to(device))
     
     target_sizes = torch.tensor([image.size[::-1]])
     results = processor.post_process_object_detection(outputs, threshold=threshold, target_sizes=target_sizes)[0]
-    print(results)
     draw = ImageDraw.Draw(image)
     for box, score, label in zip(results["boxes"], results["scores"], results["labels"]):
         box = [round(i, 2) for i in box.tolist()]
@@ -89,13 +89,52 @@ def detect_objects(image, threshold):
 
     return image
 
-interface = gr.Interface(
-    fn=detect_objects,
-    inputs=[gr.Image(type="pil"), gr.Slider(0.0, 1.0, value=0.5, label="Threshold")],
-    outputs=gr.Image(type="pil"),
-    title="object_detect",
-    description="upload a image, return a image with detection box and label.",
-)
+def labelInference(image_file, file_path, box_format):
+    image = Image.open(image_file)
+    image = image.convert("RGB")
+    
+    boxes = []
+    labels = []
+    with open(file_path, "r", encoding="utf-8")as f:
+        for line in f.readlines():
+            if line := line.strip():
+                points, label = line.split("\t")
+                points = points.split(",")
+                box = list(map(lambda x: int(float(x)), points))
+                box = convertAnnotationFormat(box, box_format, "voc")
+                boxes.append(box)
+                labels.append(label)
+    
+    draw = ImageDraw.Draw(image)
+    for box, label in zip(boxes, labels):
+        draw.rectangle(box, outline="red", width=3)
+        draw.text((box[0], box[1]), label, fill="green")
+    return image
+
+
+
+
+with gr.Blocks() as demo:
+    with gr.Row():
+        with gr.Column():
+            origin_image = gr.Image(type="filepath")
+            threshold = gr.Slider(0, 1, value=0.5, label="Threshold")
+            inference_button = gr.Button("model inference")
+            
+        with gr.Column():
+            output_model_result = gr.Image(type="pil")
+            
+    with gr.Row():
+        with gr.Column():
+            file = gr.File(type="filepath")
+            box_format = gr.Dropdown(choices=["voc", "coco", "yolo", "polygon"], value="voc", label="label file box format")
+            annotation_button = gr.Button("true label inference")
+        with gr.Column():
+            output_label_result = gr.Image(type="pil")
+    
+    inference_button.click(modelInference, inputs=[origin_image, threshold], outputs=output_model_result)
+    annotation_button.click(labelInference, inputs=[origin_image, file, box_format], outputs=output_label_result)
 
 if __name__ == "__main__":
-    interface.launch(server_name="0.0.0.0", server_port=2024)
+    demo.launch(server_name="0.0.0.0", server_port=2024)
+
