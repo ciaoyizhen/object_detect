@@ -72,7 +72,7 @@ def convertAnnotationFormat(box, input_format, output_format):
 
 
 @torch.inference_mode()
-def modelInference(file_path, threshold):
+def modelInference(file_path, threshold, font_size):
     image = Image.open(file_path)
     image = image.convert("RGB")
     inputs = processor(images=image, return_tensors="pt")
@@ -85,11 +85,11 @@ def modelInference(file_path, threshold):
         box = [round(i, 2) for i in box.tolist()]
         # box = convertAnnotationFormat(box, "coco", "voc")
         draw.rectangle(box, outline="red", width=3)
-        draw.text((box[0], box[1]), f"{model.config.id2label[label.item()]}: {round(score.item(), 2)}", fill="green")
+        draw.text((box[0], box[1]), f"{model.config.id2label[label.item()]}: {round(score.item(), 2)}", fill="green", font_size=int(font_size))
 
     return image
 
-def labelInference(image_file, file_path, box_format):
+def labelInference(image_file, file_path, box_format, font_size):
     image = Image.open(image_file)
     image = image.convert("RGB")
     
@@ -108,7 +108,7 @@ def labelInference(image_file, file_path, box_format):
     draw = ImageDraw.Draw(image)
     for box, label in zip(boxes, labels):
         draw.rectangle(box, outline="red", width=3)
-        draw.text((box[0], box[1]), label, fill="green")
+        draw.text((box[0], box[1]), label, fill="green", font_size=int(font_size))
     return image
 
 
@@ -120,8 +120,8 @@ with gr.Blocks() as demo:
         with gr.Column():
             origin_image = gr.Image(type="filepath", label="image file")
             threshold = gr.Slider(0, 1, value=0.5, label="Threshold")
+            model_font_size = gr.Slider(0, 50, step=1, value=24, label="label font size")
             inference_button = gr.Button("model inference")
-            
         with gr.Column():
             output_model_result = gr.Image(type="pil")
             
@@ -135,12 +135,13 @@ with gr.Blocks() as demo:
         with gr.Column():
             file = gr.File(type="filepath", label="annotation file")
             box_format = gr.Dropdown(choices=["voc", "coco", "yolo", "polygon"], value="voc", label="label file box format")
+            label_font_size = gr.Slider(0, 50, step=1, value=24, label="label font size")
             annotation_button = gr.Button("true label inference")
         with gr.Column():
             output_label_result = gr.Image(type="pil")
     
-    inference_button.click(modelInference, inputs=[origin_image, threshold], outputs=output_model_result)
-    annotation_button.click(labelInference, inputs=[origin_image, file, box_format], outputs=output_label_result)
+    inference_button.click(modelInference, inputs=[origin_image, threshold, model_font_size], outputs=output_model_result)
+    annotation_button.click(labelInference, inputs=[origin_image, file, box_format, label_font_size], outputs=output_label_result)
 
 if __name__ == "__main__":
     demo.launch(server_name="0.0.0.0", server_port=2024)
