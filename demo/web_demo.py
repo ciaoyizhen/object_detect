@@ -115,18 +115,25 @@ def labelInference(image_file, file_path, box_format):
 
 
 with gr.Blocks() as demo:
+    gr.Markdown("# Object Detect")
     with gr.Row():
         with gr.Column():
-            origin_image = gr.Image(type="filepath")
+            origin_image = gr.Image(type="filepath", label="image file")
             threshold = gr.Slider(0, 1, value=0.5, label="Threshold")
             inference_button = gr.Button("model inference")
             
         with gr.Column():
             output_model_result = gr.Image(type="pil")
             
+    gr.Markdown("")    
+    gr.Markdown("")
+    gr.Markdown("---")
+    gr.Markdown("")
+    gr.Markdown("")
+    
     with gr.Row():
         with gr.Column():
-            file = gr.File(type="filepath")
+            file = gr.File(type="filepath", label="annotation file")
             box_format = gr.Dropdown(choices=["voc", "coco", "yolo", "polygon"], value="voc", label="label file box format")
             annotation_button = gr.Button("true label inference")
         with gr.Column():
