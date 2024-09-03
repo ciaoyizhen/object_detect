@@ -12,6 +12,7 @@ python >= 3.10
 ```
 2024.9.1: support data enhancement
 2024.9.2: support visual annotation file in web demo
+2024.9.3: support nms in demo
 ```
 
 ## Goal

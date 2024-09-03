@@ -8,8 +8,9 @@
 import gradio as gr
 from PIL import Image, ImageDraw
 import torch
-from transformers import AutoImageProcessor, AutoModelForObjectDetection
 from enum import Enum
+from torchvision.ops import nms
+from transformers import AutoImageProcessor, AutoModelForObjectDetection
 
 device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 
@@ -72,7 +73,7 @@ def convertAnnotationFormat(box, input_format, output_format):
 
 
 @torch.inference_mode()
-def modelInference(file_path, threshold, font_size):
+def modelInference(file_path, threshold, iou_threshold,font_size):
     image = Image.open(file_path)
     image = image.convert("RGB")
     inputs = processor(images=image, return_tensors="pt")
@@ -80,14 +81,24 @@ def modelInference(file_path, threshold, font_size):
     
     target_sizes = torch.tensor([image.size[::-1]])
     results = processor.post_process_object_detection(outputs, threshold=threshold, target_sizes=target_sizes)[0]
+    
+    boxes = results["boxes"]
+    scores = results["scores"]
+    labels = results["labels"]
+    index = nms(boxes, scores, iou_threshold=iou_threshold).tolist()
     draw = ImageDraw.Draw(image)
-    for box, score, label in zip(results["boxes"], results["scores"], results["labels"]):
+    for i in index:
+        box = boxes[i]
+        score = scores[i]
+        label = labels[i]
         box = [round(i, 2) for i in box.tolist()]
         # box = convertAnnotationFormat(box, "coco", "voc")
         draw.rectangle(box, outline="red", width=3)
         draw.text((box[0], box[1]), f"{model.config.id2label[label.item()]}: {round(score.item(), 2)}", fill="green", font_size=int(font_size))
 
     return image
+    
+
 
 def labelInference(image_file, file_path, box_format, font_size):
     image = Image.open(image_file)
@@ -120,6 +131,7 @@ with gr.Blocks() as demo:
         with gr.Column():
             origin_image = gr.Image(type="filepath", label="image file")
             threshold = gr.Slider(0, 1, value=0.5, label="Threshold")
+            iou_threshold = gr.Slider(0, 1, value=0.5, label="Iou Threshold")
             model_font_size = gr.Slider(0, 50, step=1, value=24, label="label font size")
             inference_button = gr.Button("model inference")
         with gr.Column():
@@ -140,7 +152,7 @@ with gr.Blocks() as demo:
         with gr.Column():
             output_label_result = gr.Image(type="pil")
     
-    inference_button.click(modelInference, inputs=[origin_image, threshold, model_font_size], outputs=output_model_result)
+    inference_button.click(modelInference, inputs=[origin_image, threshold, iou_threshold, model_font_size], outputs=output_model_result)
     annotation_button.click(labelInference, inputs=[origin_image, file, box_format, label_font_size], outputs=output_label_result)
 
 if __name__ == "__main__":
