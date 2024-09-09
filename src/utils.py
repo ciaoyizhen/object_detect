@@ -12,7 +12,7 @@ class BoxFormat(Enum):
     VOC= "voc"  # x_min, y_min, x_max, y_max
     COCO = "coco" # x_min, y_min, width, height
     YOLO = "yolo" # center_x, center_y, width, height
-    POLYGON = "polygon"  # x_min, y_min, x_max, y_min, x_max, y_max, x_min, y_max
+    POLYGON = "polygon"  # x1,y1, x2,y2, x3,y3, x4,y4  left_top right_top right_down left_down
     #TODO if you want a truly polygon, please implement it yourself to get max box outlines
 
     def ConvertAlbumentationsFormat(self):
@@ -56,16 +56,19 @@ def convertAnnotationFormat(box, input_format, output_format):
         case BoxFormat.POLYGON:
             polygon = box
     
+    x1,y1,x2,y2,x3,y3,x4,y4 = polygon
+    x_min = min(x1, x4)
+    y_min = min(y1, y2)
+    x_max = max(x2, x3)
+    y_max = max(y3, y4)
+    
     match output_format:
         case BoxFormat.VOC:
-            x_min, y_min, x_max, _, _, y_max, _, _ = polygon
             return [x_min, y_min, x_max, y_max]
         case BoxFormat.COCO:
-            x_min, y_min, x_max, _, _, y_max, _, _ = polygon
             width, height = x_max - x_min, y_max - y_min
             return [x_min, y_min, width, height]
         case BoxFormat.YOLO:
-            x_min, y_min, x_max, _, _, y_max, _, _ = polygon
             cx, cy = (x_min + x_max)/2, (y_min + y_max)/2
             width, height = (x_max - x_min)/2, (y_max - y_min)/2
             return [cx, cy, width, height]
@@ -83,20 +86,9 @@ def calculateArea(box:list, input_format:BoxFormat)->int:
         int: box area
     """
     input_format = BoxFormat(input_format)
-    
-    match input_format:
-        case BoxFormat.VOC:
-            x_min, y_min, x_max, y_max = box
-            area = (x_max - x_min) * (y_max - y_min)
-        case BoxFormat.COCO:
-            x_min, y_min, width, height = box
-            area = width * height
-        case BoxFormat.YOLO:
-            center_x, center_y, width, height = box
-            area = width * height
-        case BoxFormat.POLYGON:
-            x_min, y_min, x_max, _, _, y_max, _, _ = box
-            area = (x_max - x_min) * (y_max - y_min)
+    box = convertAnnotationFormat(box, input_format, "voc")
+    x_min, y_min, x_max, y_max = box
+    area = (x_max - x_min) * (y_max - y_min)
     return area
 
 def normalizeBox(box, image_size, input_format):
